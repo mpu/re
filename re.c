@@ -94,10 +94,10 @@ static Re *pre;
 static jmp_buf pboom;
 static char *errloc;
 
+static void parseor(char **ps); /* forward ref */
 static void
 parse(char **ps)
 {
-	void parseor(char **ps); /* forward */
 	int c, beg, end;
 	size_t op;
 	char *s;
@@ -287,7 +287,7 @@ reend(MatchState *m)
 void
 refeed(MatchState *m, Re *re, char *str)
 {
-	unsigned char mask, *st, *t;
+	unsigned char mask, *s, *t;
 	int c;
 	size_t i;
 	Op *op;
@@ -295,14 +295,17 @@ refeed(MatchState *m, Re *re, char *str)
 	if (m->state != Active)
 		return;
 
-	for (; (c=*str); str++) {
+	for (; (c = *str & 0xff); str++) {
+
 		m->pos++;
-		op = re->nfa;
-		st = m->s;
+		s = m->s;
 		mask = 1;
+		step(m->n, re, 0);
+
 		for (i=0; i<re->len; i++) {
 
-			if (*st & mask) {
+			if (*s & mask) {
+				op = &re->nfa[i];
 				assert(op->ty == Range);
 				if (c >= op->rstart)
 				if (c < op->rstart+op->rlen)
@@ -315,10 +318,10 @@ refeed(MatchState *m, Re *re, char *str)
 			mask *= 2;
 			if ((mask & 0xff) == 0) {
 				mask = 1;
-				st++;
+				s++;
 			}
-			op++;
 		}
+
 		t = m->s; /* swap next and current state */
 		m->s = m->n;
 		m->n = t;
