@@ -155,6 +155,11 @@ parse(char **ps)
 
 		case '\\':
 			c = *++s;
+			if (!*s) {
+				errloc = s-1;
+				errs = "invalid \\";
+				longjmp(pboom, 1);
+			}
 			/* fallback */
 
 		default:
