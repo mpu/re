@@ -293,7 +293,7 @@ void
 refeed(MatchState *m, Re *re, char *str)
 {
 	unsigned char mask, *s, *t;
-	int c;
+	int c, j;
 	size_t i;
 	Op *op;
 
@@ -304,12 +304,14 @@ refeed(MatchState *m, Re *re, char *str)
 
 		m->pos++;
 		s = m->s;
-		mask = 1;
+		i = 0;
 		step(m->n, re, 0);
 
-		for (i=0; i<re->len; i++) {
+		do {
+			for (mask=1, j=0; j<8; i++, mask *= 2, j++) {
+				if ((*s & mask) == 0)
+					continue;
 
-			if (*s & mask) {
 				op = &re->nfa[i];
 				assert(op->ty == Range);
 				if (c >= op->rstart)
@@ -319,13 +321,8 @@ refeed(MatchState *m, Re *re, char *str)
 					return;
 				}
 			}
-
-			mask *= 2;
-			if ((mask & 0xff) == 0) {
-				mask = 1;
-				s++;
-			}
-		}
+			s++;
+		} while (i<re->len);
 
 		t = m->s; /* swap next and current state */
 		m->s = m->n;
